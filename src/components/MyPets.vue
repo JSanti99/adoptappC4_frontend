@@ -100,10 +100,26 @@ export default {
   width: 60vw;
   height: 71vh;
   position: absolute;
-  top: 20.8%;
+  top: 22%;
   left: 15%;
   padding: 15px;
   overflow: auto !important;
+}
+
+.generalcontainer::-webkit-scrollbar {
+    width: 15px;
+}
+
+.generalcontainer::-webkit-scrollbar-track {
+    border-radius: 10px;   
+    background-color: #fb7821;   
+}
+
+.generalcontainer::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    -webkit-box-shadow: inset 0 0 6px     rgba(0,0,0,0.5); 
+    background-color: #440381;
+    border: 3px solid #fb7821;
 }
 
 .title {

@@ -97,7 +97,8 @@
     </div>  
 
    <div class="boton2">
-             <button type="submit" onclick="window.location.href = 'https://mintic-adoptapp-be.herokuapp.com/login/';">
+             <button type="submit" 
+             @click="logIn">
                  <img src="../assets/cathead.png" style="width:20px,height:20px" alt="Retornar">
                  <p>Retornar</p>
              </button>
@@ -169,6 +170,11 @@ export default {
           alert("ERROR: Fallo en el registro.");
         });
     },
+    logIn(){
+      this.$router.push(
+        {name:"logIn"}
+      )
+    }
   },
 };
 </script>
