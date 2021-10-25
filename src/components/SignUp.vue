@@ -117,6 +117,7 @@
 
 import { base_url } from "../utils/environments";
 import countries from "../utils/countries.json";
+import jwt_decode from "jwt-decode";
 
 import axios from "axios";
 import Select from "./Select.vue";
@@ -126,6 +127,7 @@ export default {
   data: function() {
     return {
       user: {
+        id:"",
         name: "",
         lastname: "",
         IDKind: "",
@@ -157,13 +159,10 @@ export default {
           headers: {}}
       )
         .then((result) => {
-          let dataSignUp = {
-            username: this.user.username,
-            token_access: result.data.access,
-            token_refresh: result.data.refresh,
-          };
-
-          this.$emit("completedSignUp", dataSignUp);
+              alert("Usuario Registrado - Bienvenid@  " + this.user.name + " " + this.user.lastname);
+                this.$router.push({
+                  name: "logIn",
+                });
         })
         .catch((error) => {
           console.log(error);
