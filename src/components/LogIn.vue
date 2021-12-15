@@ -2,7 +2,7 @@
   <div class="logIn_user">
     <div class="container_logIn_user">
       <form class="formulario1" v-on:submit.prevent="processLogInUser">
-        <img src="../assets/Spay2.png" alt="">
+        <img src="../assets/Spay2.png" alt="" />
         <input
           type="text"
           v-model="user.username"
@@ -41,11 +41,12 @@
 </template>
 
 <script>
-import axios from "axios";
+import gql from "graphql-tag";
 import jwt_decode from "jwt-decode";
-import { base_url } from "../utils/environments";
+
 export default {
   name: "LogIn",
+
   data: function() {
     return {
       user: {
@@ -54,28 +55,35 @@ export default {
       },
     };
   },
+
   components: {},
   methods: {
-    processLogInUser: function() {
-      axios
-        .post(`https://mintic-adoptapp-be.herokuapp.com/login/`, this.user, {
-          headers: {},
+    processLogInUser: async function() {
+      await this.$apollo
+        .mutate({
+          mutation: gql`
+            mutation($credentials: CredentialsInput!) {
+              logIn(credentials: $credentials) {
+                refresh
+                access
+              }
+            }
+          `,
+          variables: {
+            credentials: this.user,
+          },
         })
         .then((result) => {
-          let token = result.data.access;
-          let userId = jwt_decode(token).user_id.toString();
           let dataLogIn = {
+            id_user: jwt_decode(result.data.logIn.access)?.user_id,
             username: this.user.username,
-            id_user: userId,
-            token_access: result.data.access,
-            token_refresh: result.data.refresh,
+            token_access: result.data.logIn.access,
+            token_refresh: result.data.logIn.refresh,
           };
-
           this.$emit("completedLogIn", dataLogIn);
         })
         .catch((error) => {
-          if (error.response.status == "401")
-            alert("ERROR 401: Credenciales Incorrectas.");
+          alert("ERROR 401: Credenciales Incorrectas.");
         });
     },
   },
@@ -83,9 +91,7 @@ export default {
 </script>
 
 <style>
-
-
-.formulario1{
+.formulario1 {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -94,14 +100,5 @@ export default {
   top: 35%;
   left: 50%;
   margin-left: -7.5em;
-  
-
-  }
-
-
-
-
-
-
-
+}
 </style>

@@ -10,7 +10,7 @@
       <form
         id="CreateForm"
         class="formulariopet"
-        v-on:submit.prevent="createPetAdoption"
+        v-on:submit.prevent="usePetAdoption"
       >
         <div class="photo">
           <div>
@@ -71,7 +71,7 @@
             <label class="etiquetas" for="edad">Edad</label>
             <input
               class="entradas"
-              type="text"
+              type="number"
               id="edad"
               v-model="pet.age"
               placeholder="Sin Espacios"
@@ -292,10 +292,9 @@
 </template>
 
 <script>
-import { base_url } from "../utils/environments";
+import gql from "graphql-tag";
 import countries from "../utils/countries.json";
 
-import axios from "axios";
 import Select from "./Select.vue";
 
 export default {
@@ -304,7 +303,7 @@ export default {
   data: function() {
     return {
       pet: {
-        id: -1,
+        id: "-1",
         name: "",
         species: "",
         size: "",
@@ -331,105 +330,193 @@ export default {
   components: {
     Select,
   },
+
   methods: {
-    createPetAdoption() {
-      const formData = new FormData();
-      formData.append("name", this.pet.name);
-      formData.append("species", this.pet.species);
-      formData.append("size", this.pet.size);
-      formData.append("age", this.pet.age);
-      formData.append("country", this.pet.country);
-      formData.append("city", this.pet.city);
-      formData.append("cohabitation_animals", this.pet.cohabitation_animals);
-      formData.append("cohabitation_kids", this.pet.cohabitation_kids);
-      formData.append("pathologies", this.pet.pathologies);
-      formData.append("diseases_drugs", this.pet.diseases_drugs);
-      formData.append("sterilized", this.pet.sterilized);
-      formData.append("vaccinated", this.pet.vaccinated);
-      formData.append("vaccines", this.pet.vaccines);
-      formData.append("deworming", this.pet.deworming);
-      formData.append("dewormer", this.pet.dewormer);
-      formData.append("history", this.pet.history);
-      formData.append("status", this.pet.status);
-      if(typeof this.pet.image !== "string"){
-        formData.append("image", this.pet.image);
-      }
-      if (!this.updatePet) {
-        axios
-          .post(`https://mintic-adoptapp-be.herokuapp.com/pet/`, formData, {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${localStorage.getItem("token_access")}`,
-            },
-          })
-          .then((peticion) => {
-            alert("Mascota Creada");
-            axios
-              .post(
-                `https://mintic-adoptapp-be.herokuapp.com/requestPet/`,
-                {
-                  user: localStorage.getItem("id_user"),
-                  pet: peticion.data.id,
-                  request_kind: "HD",
-                },
-                {
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem(
-                      "token_access"
-                    )}`,
-                  },
-                }
-              )
-              .then((data) => {
-                // alert("creada RequestPet");
-                this.$router.push({
-                  name: "home",
-                });
-              })
-              .catch((err) => {
-                console.log(err);
-              });
-          })
-          .catch((err) => {
-            console.log(err);
-          });
-      } else {
-          axios
-          .put(
-            `https://mintic-adoptapp-be.herokuapp.com/pet/update/${this.updatePet}/`,
-            formData,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-                Authorization: `Bearer ${localStorage.getItem("token_access")}`,
-              },
+    createPetAdoption: async function() {
+      await this.$apollo
+        .mutate({
+          mutation: gql`
+            mutation CreatePet($petInput: PetInput) {
+              createPet(petInput: $petInput) {
+                name
+                species
+                size
+                age
+                country
+                city
+                cohabitation_animals
+                cohabitation_kids
+                pathologies
+                sterilized
+                diseases_drugs
+                vaccinated
+                vaccines
+                deworming
+                dewormer
+                history
+                status
+                created_at
+                updated_at
+                id
+                image
+              }
             }
-          )
-          .then((res) => {
-            alert("Mascota Actualizada");
-            this.$router.push({
-              name: "home",
-            });
-          });
+          `,
+          variables: {
+            petInput: {
+              ...this.computedPet,
+              status: "RG",
+            },
+          },
+        })
+        .then((res) => {
+          this.createRequestPet(res.data.createPet.id)
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
+    createRequestPet: async function(createdPet) {
+      await this.$apollo
+        .mutate({
+          mutation: gql`
+            mutation CreateRequestPet($requestPetInput: RequestPetInput) {
+              createRequestPet(requestPetInput: $requestPetInput) {
+                _id
+                user
+                pet { 
+                  name
+                  age
+                  status
+                  image
+                  created_at
+                  id
+                }
+                created_at
+                request_kind
+                finalized_at
+              }
+            }
+          `,
+          variables: {
+            requestPetInput:{
+                "user":JSON.parse(localStorage.getItem("id_user")),
+                "pet": createdPet,
+                "request_kind": "HD"
+            }
+          },
+        })
+        .then((res) => {
+          this.$router.go({ name: "home" });
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
+    updatePetAdoption: async function() {
+      await this.$apollo
+        .mutate({
+          mutation: gql`
+            mutation UpdatePet($petInput: UpdatePetInput) {
+              updatePet(petInput: $petInput) {
+                id
+                updated_at
+                created_at
+                image
+                status
+                history
+                dewormer
+                deworming
+                vaccines
+                vaccinated
+                sterilized
+                pathologies
+                diseases_drugs
+                cohabitation_kids
+                cohabitation_animals
+                city
+                country
+                age
+                size
+                species
+                name
+              }
+            }
+          `,
+          variables: {
+            petInput: {
+              ...this.computedPet,
+            },
+          },
+        })
+        .then((res) => {
+          this.$router.push({ name: "home" });
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
+    loadPet: async function() {
+      await this.$apollo
+        .query({
+          query: gql`
+            query GetPetByPetId($petId: String!) {
+              getPetByPetId(petId: $petId) {
+                name
+                species
+                size
+                age
+                country
+                city
+                cohabitation_animals
+                cohabitation_kids
+                pathologies
+                diseases_drugs
+                sterilized
+                vaccinated
+                deworming
+                vaccines
+                dewormer
+                history
+                status
+                image
+                created_at
+                updated_at
+                id
+              }
+            }
+          `,
+          variables: {
+            petId: this.updatePet,
+          },
+        })
+        .then((res) => {
+          this.pet = res.data.getPetByPetId;
+        });
+    },
+    usePetAdoption: function() {
+      if (this.updatePet) {
+        this.updatePetAdoption();
+      } else {
+        this.createPetAdoption();
       }
     },
     onFileChange(e) {
       var files = e.target.files || e.dataTransfer.files;
       if (!files.length) return;
-      this.pet.image = files[0];
-      this.createImage(files[0]);
+      this.encodeImageFileAsURL(files[0]);
     },
-    createImage(file) {
-      var image = new Image();
+    encodeImageFileAsURL(file) {
       var reader = new FileReader();
-      var vm = this;
-
-      reader.onload = (e) => {
-        vm.auxImage = e.target.result;
+      const vm = this;
+      reader.onloadend = function() {
+        console.log("RESULT", reader.result);
+        vm.pet = { ...vm.pet, image: reader.result };
+        vm.auxImage = reader.result;
       };
       reader.readAsDataURL(file);
     },
+
     removeImage: function(e) {
       this.pet.image = "";
       this.auxImage = "";
@@ -441,18 +528,24 @@ export default {
     },
   },
   created() {
-    console.log(this.updatePet);
     if (this.updatePet) {
-      axios
-        .get(`${base_url}/pet/detail/${this.updatePet}/`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token_access")}`,
-          },
-        })
-        .then((res) => {
-          this.pet = res.data;
-        });
+      this.loadPet();
     }
+  },
+  computed: {
+    // a computed getter
+    computedPet: function() {
+      let originalPet = this.pet;
+      let auxPet = {};
+      Object.entries(originalPet).forEach(([key, value]) => {
+        this.updatePet && key !== "__typename" && (auxPet[key] = value);
+        !this.updatePet &&
+          key !== "__typename" &&
+          key !== "id" &&
+          (auxPet[key] = value);
+      });
+      return { ...auxPet };
+    },
   },
 };
 </script>

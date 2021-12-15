@@ -48,9 +48,9 @@
 </template>
 
 <script>
-import { base_url } from "../utils/environments";
 import Pet from "./Pet.vue";
-import axios from "axios";
+import gql from "graphql-tag";
+
 export default {
   data: function() {
     return {
@@ -61,20 +61,50 @@ export default {
     Pet,
   },
   methods: {
-    loadPets() {
-      axios
-        .get(`${base_url}/requestPet/details/`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token_access")}`,
+    loadPets: async function() {
+      await this.$apollo
+        .query({
+          query: gql`
+            query GetRequestPetByUserId($userId: Int!) {
+              getRequestPetByUserId(userId: $userId) {
+                _id
+                user
+                pet {
+                  id
+                  updated_at
+                  created_at
+                  image
+                  status
+                  history
+                  dewormer
+                  deworming
+                  vaccines
+                  vaccinated
+                  sterilized
+                  pathologies
+                  diseases_drugs
+                  cohabitation_kids
+                  cohabitation_animals
+                  city
+                  country
+                  age
+                  size
+                  species
+                  name  
+                }
+                created_at
+                request_kind
+              }
+            }
+          `,
+          variables: {
+            userId: JSON.parse(localStorage.getItem("id_user")),
           },
         })
         .then((res) => {
-          this.requestPets = res.data
-            .filter(
-              (requestPet) =>
-                requestPet.user === +localStorage.getItem("id_user")
-            )
-            .filter((requestPet) => requestPet.pet.status !== "RT");
+          this.requestPets = res.data.getRequestPetByUserId.filter(
+            (requestPet) => requestPet.pet.status !== "RT"
+          );
         });
     },
     loadConditions: function() {
@@ -86,14 +116,13 @@ export default {
       );
     },
   },
-  created: function() {
+  mounted: function() {
     this.loadPets();
   },
 };
 </script>
 
 <style>
-
 .generalcontainer {
   text-align: center;
   background-color: rgba(255, 255, 255, 0.4);
@@ -107,19 +136,19 @@ export default {
 }
 
 .generalcontainer::-webkit-scrollbar {
-    width: 15px;
+  width: 15px;
 }
 
 .generalcontainer::-webkit-scrollbar-track {
-    border-radius: 10px;   
-    background-color: #fb7821;   
+  border-radius: 10px;
+  background-color: #fb7821;
 }
 
 .generalcontainer::-webkit-scrollbar-thumb {
-    border-radius: 10px;
-    -webkit-box-shadow: inset 0 0 6px     rgba(0,0,0,0.5); 
-    background-color: #440381;
-    border: 3px solid #fb7821;
+  border-radius: 10px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
+  background-color: #440381;
+  border: 3px solid #fb7821;
 }
 
 .title {

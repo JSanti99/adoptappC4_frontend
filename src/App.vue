@@ -75,24 +75,31 @@
 import Wave from "./components/Wave.vue";
 export default {
   name: "App",
-  data: function() {
-    return {
-      is_auth: false,
-      d_top:
-        "M-0.90,135.49 C150.00,150.00 277.88,-21.41 508.12,121.68 L500.00,0.00 L0.00,0.00 Z",
-      d_bottom:
-        "M0.00,49.99 C150.00,150.00 349.20,-49.99 500.00,49.99 L500.00,150.00 L0.00,150.00 Z",
-    };
-  },
-  components: {
-    Wave,
-  },
-  methods: {
-    verifyAuth: function() {
-      this.is_auth = localStorage.getItem("isAuth") || false;
-      if (this.is_auth == false) this.$router.push({ name: "logIn" });
-      else this.$router.push({ name: "home" });
+
+  computed: {
+    is_auth: {
+      get: function() {
+        return this.$route.meta.requiresAuth;
+      },
+      set: function() {},
     },
+  },
+
+  // data: function() {
+  //   return {
+  //     is_auth: false,
+  //     d_top:
+  //       "M-0.90,135.49 C150.00,150.00 277.88,-21.41 508.12,121.68 L500.00,0.00 L0.00,0.00 Z",
+  //     d_bottom:
+  //       "M0.00,49.99 C150.00,150.00 349.20,-49.99 500.00,49.99 L500.00,150.00 L0.00,150.00 Z",
+  //   };
+  // },
+  // components: {
+  //   Wave,
+  // },
+
+  methods: {
+
     loadLogIn: function() {
       this.$router.push({ name: "logIn" });
     },
@@ -113,7 +120,7 @@ export default {
       localStorage.setItem("token_refresh", data.token_refresh);
 
       alert("Autenticación Exitosa");
-      this.verifyAuth();
+      this.loadHome();
     },
 
     completedSignUp: function(data) {
@@ -124,12 +131,12 @@ export default {
     logOut: function() {
       localStorage.clear();
       alert("Sesión Cerrada");
-      this.verifyAuth();
+      this.loadLogIn();
     },
   },
   created: function() {
-    this.verifyAuth();
-  },
+    this.loadHome();  
+  }
 };
 </script>
 

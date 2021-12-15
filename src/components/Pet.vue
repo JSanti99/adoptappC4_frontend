@@ -1,10 +1,13 @@
 <template>
   <div class="card">
-    <img :src="`${base_url}${requestPet?.pet?.image}`" />
+    <img :src="`${requestPet?.pet?.image}`" />
     <h4 class="uppercase text-3xl text-purple-base">
       {{ requestPet?.pet?.name }}
     </h4>
-    <button  @click="updatePet" class="text-orange-base font-bold p-2 rounded-full">
+    <button
+      @click="updatePet"
+      class="text-orange-base font-bold p-2 rounded-full"
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         class="h-8 w-8 flex-no-shrink hover:text-orange-800  hover:fill-current"
@@ -43,8 +46,7 @@
 </template>
 
 <script>
-import { base_url } from "../utils/environments";
-import axios from "axios";
+import gql from "graphql-tag";
 
 export default {
   props: {
@@ -52,35 +54,69 @@ export default {
       type: Object,
     },
   },
-  data: function() {
-    return {
-      base_url: base_url,
-    };
-  },
   emits: ["deletePet"],
+
   methods: {
-    deleteRequestPet() {
-      axios
-        .put(
-          `${base_url}/pet/update/${this.requestPet.pet.id}/`,
-          {
-            status: "RT",
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token_access")}`,
+    deleteRequestPet: async function() {
+      await this.$apollo
+        .mutate({
+          mutation: gql`
+            mutation UpdatePet($petInput: UpdatePetInput) {
+              updatePet(petInput: $petInput) {
+                id
+                updated_at
+                created_at
+                image
+                status
+                history
+                dewormer
+                deworming
+                vaccines
+                vaccinated
+                sterilized
+                pathologies
+                diseases_drugs
+                cohabitation_kids
+                cohabitation_animals
+                city
+                country
+                age
+                size
+                species
+                name
+              }
+            }
+          `,
+          variables: {
+            petInput: {
+              ...this.computedRequestPet.pet,
+              status: "RT",
             },
-          }
-        )
+          },
+        })
         .then((res) => {
-          this.$emit("deletePet", res.data);
+          this.$emit("deletePet", res.data.updatePet);
         })
         .catch((err) => {});
     },
-    updatePet(){
+    updatePet() {
       this.$router.push({
-        name:"adoption", params: {updatePet:this.requestPet.pet.id}
-      })
+        name: "adoption",
+        params: { updatePet: this.requestPet.pet.id },
+      });
+    },
+  },
+  computed: {
+    // a computed getter
+    computedRequestPet: function() {
+      let auxRequestPet = this.requestPet;
+      let auxPet = {};
+      Object.entries(auxRequestPet?.pet).forEach(([key, value]) => {
+        if (key !== "__typename") {
+          auxPet[key] = value;
+        }
+      });
+      return {...auxRequestPet,pet: auxPet};
     },
   },
 };
